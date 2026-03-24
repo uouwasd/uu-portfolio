@@ -401,32 +401,30 @@
                 <h2 class="text-3xl md:text-4xl font-bold">MBTI 板报</h2>
             </div>
 
-            <!-- Carousel wrapper with fade masks on both sides -->
-            <div class="relative" data-aos="fade-up" data-aos-duration="700">
-                <!-- Left fade -->
-                <div class="pointer-events-none absolute left-0 top-0 h-full w-28 z-10"
-                     style="background: linear-gradient(to right, #0a160d 0%, transparent 100%)"></div>
-                <!-- Right fade -->
-                <div class="pointer-events-none absolute right-0 top-0 h-full w-28 z-10"
-                     style="background: linear-gradient(to left, #0a160d 0%, transparent 100%)"></div>
+            <!-- Carousel -->
+            <div class="relative select-none" data-aos="fade-up" data-aos-duration="700">
 
-                <!-- Scrollable track -->
-                <div id="poster-track"
-                     class="flex gap-5 overflow-x-auto pb-4 cursor-grab active:cursor-grabbing"
-                     style="scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; scrollbar-width: none;">
-                    <div class="poster-card flex-shrink-0 w-52 transition-opacity duration-300" style="scroll-snap-align: center;">
-                        <img src="assets/141772924712_.pic_hd.jpg" alt="MBTI 板报">
-                    </div>
-                    <div class="poster-card flex-shrink-0 w-52 transition-opacity duration-300" style="scroll-snap-align: center;">
-                        <img src="assets/151772924713_.pic_hd.jpg" alt="MBTI 板报">
-                    </div>
-                    <div class="poster-card flex-shrink-0 w-52 transition-opacity duration-300" style="scroll-snap-align: center;">
-                        <img src="assets/161772924715_.pic_hd.jpg" alt="MBTI 板报">
-                    </div>
-                    <div class="poster-card flex-shrink-0 w-52 transition-opacity duration-300" style="scroll-snap-align: center;">
-                        <img src="assets/171772924716_.pic_hd.jpg" alt="MBTI 板报">
+                <!-- Left / Right arrow buttons -->
+                <button id="carr-prev"
+                    class="absolute left-0 top-1/2 -translate-y-1/2 z-20 w-10 h-10 flex items-center justify-center rounded-full border border-white/15 text-white/60 hover:text-white hover:border-white/40 transition"
+                    style="background:rgba(4,14,8,0.6); backdrop-filter:blur(6px);">
+                    <i data-lucide="chevron-left" class="w-5 h-5"></i>
+                </button>
+                <button id="carr-next"
+                    class="absolute right-0 top-1/2 -translate-y-1/2 z-20 w-10 h-10 flex items-center justify-center rounded-full border border-white/15 text-white/60 hover:text-white hover:border-white/40 transition"
+                    style="background:rgba(4,14,8,0.6); backdrop-filter:blur(6px);">
+                    <i data-lucide="chevron-right" class="w-5 h-5"></i>
+                </button>
+
+                <!-- Track viewport — clips overflow -->
+                <div class="overflow-hidden mx-12" id="carr-viewport" style="height:420px; position:relative;">
+                    <div id="carr-track" class="absolute inset-0 flex items-center justify-center">
+                        <!-- cards injected by JS -->
                     </div>
                 </div>
+
+                <!-- Dots -->
+                <div id="carr-dots" class="flex justify-center gap-2 mt-6"></div>
             </div>
         </div>
     </section>
@@ -494,6 +492,8 @@
 
     <script>
         lucide.createIcons();
+        // Re-init after dynamic elements
+        setTimeout(() => lucide.createIcons(), 50);
         AOS.init({ once: false, mirror: true, duration: 800, easing: 'ease-out-cubic', offset: 60 });
 
         // ── Falling leaves on scroll ──
@@ -572,43 +572,120 @@
             }
         }, { passive: true });
 
-        // ── Poster carousel: opacity by distance from center + drag ──
-        const track = document.getElementById('poster-track');
-        if (track) {
-            // Hide scrollbar visually
-            track.style.msOverflowStyle = 'none';
+        // ══ MBTI Poster Carousel ══
+        (function () {
+            const images = [
+                'assets/141772924712_.pic_hd.jpg',
+                'assets/151772924713_.pic_hd.jpg',
+                'assets/161772924715_.pic_hd.jpg',
+                'assets/171772924716_.pic_hd.jpg',
+            ];
+            const CARD_W   = 220;   // px, card width
+            const CARD_GAP = 28;    // px, gap between cards
+            const STEP = CARD_W + CARD_GAP;
 
-            function updateOpacity() {
-                const cards = track.querySelectorAll('.poster-card');
-                const center = track.scrollLeft + track.clientWidth / 2;
-                cards.forEach(card => {
-                    const cardCenter = card.offsetLeft + card.offsetWidth / 2;
-                    const dist = Math.abs(center - cardCenter);
-                    const maxDist = track.clientWidth * 0.55;
-                    const opacity = Math.max(0.25, 1 - (dist / maxDist) * 0.75);
-                    card.style.opacity = opacity;
-                    const scale = Math.max(0.92, 1 - (dist / maxDist) * 0.08);
-                    card.style.transform = `scale(${scale})`;
+            let current = 0;
+            const viewport = document.getElementById('carr-viewport');
+            const trackEl  = document.getElementById('carr-track');
+            const dotsEl   = document.getElementById('carr-dots');
+            const btnPrev  = document.getElementById('carr-prev');
+            const btnNext  = document.getElementById('carr-next');
+            if (!viewport) return;
+
+            // Build cards
+            images.forEach((src, i) => {
+                const card = document.createElement('div');
+                card.className = 'carr-card';
+                card.style.cssText = `
+                    position: absolute;
+                    width: ${CARD_W}px;
+                    border-radius: 1rem;
+                    overflow: hidden;
+                    background: rgba(4,14,8,0.55);
+                    border: 1px solid rgba(255,255,255,0.09);
+                    box-shadow: 0 16px 40px rgba(0,0,0,0.5);
+                    cursor: pointer;
+                    transition: transform 0.55s cubic-bezier(0.22,1,0.36,1),
+                                opacity  0.55s cubic-bezier(0.22,1,0.36,1);
+                    will-change: transform, opacity;
+                `;
+                const img = document.createElement('img');
+                img.src = src;
+                img.alt = 'MBTI 板报';
+                img.style.cssText = 'width:100%; aspect-ratio:3/4; object-fit:cover; display:block;';
+                card.appendChild(img);
+                card.addEventListener('click', () => goTo(i));
+                trackEl.appendChild(card);
+            });
+
+            // Build dots
+            images.forEach((_, i) => {
+                const d = document.createElement('button');
+                d.style.cssText = `width:6px;height:6px;border-radius:50%;border:none;cursor:pointer;
+                    transition: background 0.3s, transform 0.3s;
+                    background: rgba(255,255,255,0.25);`;
+                d.addEventListener('click', () => goTo(i));
+                dotsEl.appendChild(d);
+            });
+
+            function render() {
+                const cards = trackEl.querySelectorAll('.carr-card');
+                const dots  = dotsEl.querySelectorAll('button');
+                const vw = viewport.clientWidth;
+
+                cards.forEach((card, i) => {
+                    const offset = i - current;
+                    const x = vw / 2 - CARD_W / 2 + offset * STEP;
+                    const isCenter = i === current;
+                    const isAdjacent = Math.abs(offset) === 1;
+
+                    let scale   = isCenter ? 1      : isAdjacent ? 0.86 : 0.75;
+                    let opacity = isCenter ? 1      : isAdjacent ? 0.38 : 0.15;
+                    let zIndex  = isCenter ? 10     : isAdjacent ? 5    : 1;
+
+                    card.style.transform = `translateX(${x}px) scale(${scale})`;
+                    card.style.opacity   = opacity;
+                    card.style.zIndex    = zIndex;
+                });
+
+                dots.forEach((d, i) => {
+                    d.style.background   = i === current ? '#6ee7b7' : 'rgba(255,255,255,0.25)';
+                    d.style.transform    = i === current ? 'scale(1.4)' : 'scale(1)';
                 });
             }
-            track.addEventListener('scroll', updateOpacity, { passive: true });
-            setTimeout(updateOpacity, 200);
 
-            // Mouse drag to scroll
-            let isDown = false, startX, scrollStart;
-            track.addEventListener('mousedown', e => {
-                isDown = true;
-                startX = e.pageX - track.offsetLeft;
-                scrollStart = track.scrollLeft;
+            function goTo(idx) {
+                current = Math.max(0, Math.min(images.length - 1, idx));
+                render();
+            }
+
+            btnPrev.addEventListener('click', () => goTo(current - 1));
+            btnNext.addEventListener('click', () => goTo(current + 1));
+
+            // Touch / drag swipe
+            let touchStartX = null;
+            viewport.addEventListener('touchstart', e => { touchStartX = e.touches[0].clientX; }, { passive: true });
+            viewport.addEventListener('touchend',   e => {
+                if (touchStartX === null) return;
+                const diff = touchStartX - e.changedTouches[0].clientX;
+                if (Math.abs(diff) > 40) goTo(current + (diff > 0 ? 1 : -1));
+                touchStartX = null;
             });
-            window.addEventListener('mouseup',   () => { isDown = false; });
-            window.addEventListener('mousemove', e => {
-                if (!isDown) return;
-                e.preventDefault();
-                const x = e.pageX - track.offsetLeft;
-                track.scrollLeft = scrollStart - (x - startX);
+            let mouseStartX = null;
+            viewport.addEventListener('mousedown', e => { mouseStartX = e.clientX; viewport.style.cursor = 'grabbing'; });
+            window.addEventListener('mouseup', e => {
+                if (mouseStartX === null) return;
+                const diff = mouseStartX - e.clientX;
+                if (Math.abs(diff) > 40) goTo(current + (diff > 0 ? 1 : -1));
+                mouseStartX = null;
+                viewport.style.cursor = 'grab';
             });
-        }
+            viewport.style.cursor = 'grab';
+
+            // Initial render after layout
+            setTimeout(render, 100);
+            window.addEventListener('resize', render);
+        })();
 
         // Stacked card hover — bring hovered card to front
         const c1 = document.getElementById('rcard-1');
