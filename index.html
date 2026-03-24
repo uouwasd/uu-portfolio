@@ -634,7 +634,6 @@
                     box-shadow:0 14px 36px rgba(0,0,0,0.55);
                     transform-origin:center center;
                     cursor:pointer;
-                    transition:transform ${DUR}ms ${EASE}, opacity ${DUR}ms ${EASE};
                 `;
                 const img = document.createElement('img');
                 img.src = src; img.draggable = false;
@@ -664,30 +663,34 @@
                 return vw / 2 - CARD_W / 2 - idx * STEP;
             }
 
+            const CARD_T = `transform ${DUR}ms ${EASE}, opacity ${DUR}ms ${EASE}`;
+
+            // ── arm / disarm transitions on track + every card ────
+            function setTransitions(on) {
+                track.style.transition = on ? `transform ${DUR}ms ${EASE}` : 'none';
+                cards.forEach(c => { c.style.transition = on ? CARD_T : 'none'; });
+            }
+
             // ── render ────────────────────────────────────────────
-            function paint(animate) {
-                // track position
-                track.style.transition = animate ? `transform ${DUR}ms ${EASE}` : 'none';
-                track.style.transform  = `translate3d(${txFor(cur)}px,0,0)`;
-
-                // per-card scale + opacity
+            function applyPositions() {
+                track.style.transform = `translate3d(${txFor(cur)}px,0,0)`;
                 cards.forEach((c, i) => {
-                    const off = i - cur;
-                    const abs = Math.abs(off);
+                    const abs = Math.abs(i - cur);
                     c.style.transform = `scale(${abs === 0 ? 1 : abs === 1 ? 0.83 : 0.72})`;
-                    c.style.opacity   = abs === 0 ? '1' : abs === 1 ? '0.38' : '0.12';
-                    c.style.zIndex    = abs === 0 ? '10' : abs === 1 ? '5' : '1';
+                    c.style.opacity   =  abs === 0 ? '1' : abs === 1 ? '0.4' : '0.14';
+                    c.style.zIndex    =  abs === 0 ? '10' : abs === 1 ? '5' : '1';
                 });
-
-                // dots
                 const ri = (cur - 1 + n) % n;
                 dots.forEach((d, i) => {
                     d.style.background = i === ri ? '#6ee7b7' : 'rgba(255,255,255,0.25)';
                     d.style.transform  = i === ri ? 'scale(1.5)' : 'scale(1)';
                 });
-
-                // sync height to card
                 vp.style.height = (CARD_W * 4 / 3 + 40) + 'px';
+            }
+
+            function paint(animate) {
+                setTransitions(animate);
+                applyPositions();
             }
 
             function jump(idx) { cur = idx; paint(true); }
@@ -698,18 +701,20 @@
                 jump(cur + dir);
             }
 
-            // ── infinite loop via transitionend ───────────────────
+            // ── infinite loop: warp on clone arrival ──────────────
             track.addEventListener('transitionend', e => {
                 if (e.target !== track || e.propertyName !== 'transform') return;
-                let warped = false;
-                if      (cur === 0)     { cur = n;     warped = true; }
-                else if (cur === n + 1) { cur = 1;     warped = true; }
-                if (warped) {
-                    paint(false); // instant snap
+
+                const isClone = cur === 0 || cur === n + 1;
+                if (isClone) {
+                    // Step 1: kill all transitions
+                    setTransitions(false);
+                    // Step 2: reposition to real counterpart (completely invisible)
+                    cur = cur === 0 ? n : 1;
+                    applyPositions();
+                    // Step 3: re-arm transitions after two frames (browser must paint frame first)
                     requestAnimationFrame(() =>
-                        requestAnimationFrame(() => {
-                            track.style.transition = `transform ${DUR}ms ${EASE}`;
-                        })
+                        requestAnimationFrame(() => setTransitions(true))
                     );
                 }
                 locked = false;
