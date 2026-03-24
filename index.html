@@ -594,15 +594,18 @@
                 'assets/161772924715_.pic_hd.jpg',
                 'assets/171772924716_.pic_hd.jpg',
             ];
-            const n    = REAL.length;
-            // Cloned list: [last, 0, 1, 2, 3, first]  → indices 0 … n+1
-            const srcs = [REAL[n - 1], ...REAL, REAL[0]];
+            const n     = REAL.length;
+            const CLONE = 2; // clones on EACH side → always 2 cards visible left & right
 
-            const CARD_W  = 230;
+            // srcs: [REAL[n-2], REAL[n-1],   REAL[0..n-1],   REAL[0], REAL[1]]
+            const srcs  = [...REAL.slice(n - CLONE), ...REAL, ...REAL.slice(0, CLONE)];
+
+            const CARD_W   = 230;
             const CARD_GAP = 22;
-            const STEP    = CARD_W + CARD_GAP;
-            const DUR     = 500;
-            const EASE    = 'cubic-bezier(0.22,1,0.36,1)';
+            const STEP     = CARD_W + CARD_GAP;
+            const DUR_TRACK= 540;  // track slides for 540ms
+            const DUR_CARD = 360;  // cards finish 180ms BEFORE track → warp snap is always clean
+            const EASE     = 'cubic-bezier(0.22,1,0.36,1)';
 
             const vp      = document.getElementById('carr-viewport');
             const track   = document.getElementById('carr-track');
@@ -611,7 +614,7 @@
             const btnN    = document.getElementById('carr-next');
             if (!vp) return;
 
-            let cur    = 1;      // active index in srcs (1 = first real slide)
+            let cur    = CLONE;  // active index in srcs (CLONE = first real slide)
             let locked = false;
 
             // ── build cards ──────────────────────────────────────
@@ -623,8 +626,7 @@
                     flex-shrink:0; width:${CARD_W}px;
                     border-radius:14px; overflow:hidden;
                     background:rgba(4,14,8,0.55);
-                    border:1px solid rgba(255,255,255,0.1);
-                    box-shadow:0 14px 36px rgba(0,0,0,0.55);
+                    box-shadow:0 14px 36px rgba(0,0,0,0.45);
                     transform-origin:center center;
                     cursor:pointer;
                 `;
@@ -645,7 +647,7 @@
             const dots = Array.from({length: n}, (_, i) => {
                 const d = document.createElement('button');
                 d.style.cssText = 'width:6px;height:6px;border-radius:50%;border:none;padding:0;cursor:pointer;background:rgba(255,255,255,0.25);transition:background .3s,transform .3s;';
-                d.addEventListener('click', () => { if (!locked) jump(i + 1); });
+                d.addEventListener('click', () => { if (!locked) jump(i + CLONE); });
                 dotsEl.appendChild(d);
                 return d;
             });
@@ -656,11 +658,12 @@
                 return vw / 2 - CARD_W / 2 - idx * STEP;
             }
 
-            const CARD_T = `transform ${DUR}ms ${EASE}, opacity ${DUR}ms ${EASE}`;
+            const TRACK_T = `transform ${DUR_TRACK}ms ${EASE}`;
+            const CARD_T  = `transform ${DUR_CARD}ms ${EASE}, opacity ${DUR_CARD}ms ${EASE}`;
 
             // ── arm / disarm transitions on track + every card ────
             function setTransitions(on) {
-                track.style.transition = on ? `transform ${DUR}ms ${EASE}` : 'none';
+                track.style.transition = on ? TRACK_T : 'none';
                 cards.forEach(c => { c.style.transition = on ? CARD_T : 'none'; });
             }
 
@@ -691,7 +694,7 @@
                     c.style.zIndex    = String(zIndex);
                 });
 
-                const ri = (cur - 1 + n) % n;
+                const ri = (cur - CLONE + n) % n;
                 dots.forEach((d, i) => {
                     d.style.background = i === ri ? '#6ee7b7' : 'rgba(255,255,255,0.25)';
                     d.style.transform  = i === ri ? 'scale(1.5)' : 'scale(1)';
@@ -716,16 +719,20 @@
             track.addEventListener('transitionend', e => {
                 if (e.target !== track || e.propertyName !== 'transform') return;
 
-                const isClone = cur === 0 || cur === n + 1;
+                // Real slides occupy indices CLONE … CLONE+n-1
+                // Warp if we've landed on any clone zone
+                const isClone = cur < CLONE || cur >= CLONE + n;
                 if (isClone) {
-                    // Step 1: kill all transitions
                     setTransitions(false);
-                    // Step 2: reposition to real counterpart (completely invisible)
-                    cur = cur === 0 ? n : 1;
+                    // Jump by exactly n in the right direction to land on real counterpart
+                    cur = cur < CLONE ? cur + n : cur - n;
                     applyPositions();
                     // Step 3: re-arm transitions after two frames (browser must paint frame first)
+                    // Re-arm after browser has painted the snapped frame
                     requestAnimationFrame(() =>
-                        requestAnimationFrame(() => setTransitions(true))
+                        requestAnimationFrame(() => {
+                            setTransitions(true);
+                        })
                     );
                 }
                 locked = false;
@@ -753,9 +760,7 @@
             // ── init ─────────────────────────────────────────────
             paint(false);
             requestAnimationFrame(() =>
-                requestAnimationFrame(() => {
-                    track.style.transition = `transform ${DUR}ms ${EASE}`;
-                })
+                requestAnimationFrame(() => setTransitions(true))
             );
             window.addEventListener('resize', () => paint(false));
         })();
