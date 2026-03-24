@@ -404,37 +404,48 @@
             <!-- Carousel -->
             <div class="relative select-none" data-aos="fade-up" data-aos-duration="700">
 
-                <!-- Arrow buttons — sit outside the viewport so they're never clipped -->
-                <button id="carr-prev"
-                    class="absolute left-0 top-1/2 -translate-y-1/2 z-20 w-10 h-10 flex items-center justify-center rounded-full border border-white/15 text-white/60 hover:text-white hover:border-white/40 transition"
-                    style="background:rgba(4,14,8,0.6);backdrop-filter:blur(6px);">
-                    <i data-lucide="chevron-left" class="w-5 h-5"></i>
-                </button>
-                <button id="carr-next"
-                    class="absolute right-0 top-1/2 -translate-y-1/2 z-20 w-10 h-10 flex items-center justify-center rounded-full border border-white/15 text-white/60 hover:text-white hover:border-white/40 transition"
-                    style="background:rgba(4,14,8,0.6);backdrop-filter:blur(6px);">
-                    <i data-lucide="chevron-right" class="w-5 h-5"></i>
-                </button>
+                <!-- Viewport: full-width, clips the scrolling track -->
+                <div id="carr-viewport" style="overflow:hidden; position:relative; width:100%;">
 
-                <!--
-                  Viewport: overflow:hidden clips the track.
-                  mx-14 leaves room for the arrow buttons.
-                  Height is set by JS once CARD_H is known.
-                -->
-                <div id="carr-viewport" style="overflow:hidden; position:relative; margin:0 3.5rem;">
-                    <!--
-                      Track: a single flex row.
-                      translate3d(x,0,0) drives ALL horizontal movement — no per-card translateX.
-                      Per-card scale + opacity are layered separately.
-                    -->
-                    <div id="carr-track"
-                         style="display:flex; align-items:center; will-change:transform;">
-                        <!-- cards injected by JS -->
+                    <!-- Track: single flex row translated by JS -->
+                    <div id="carr-track" style="display:flex; align-items:center; will-change:transform; padding:16px 0 24px;">
                     </div>
+
+                    <!-- Edge gradient — gives the "两边偏透明" fade without JS -->
+                    <div style="position:absolute;inset:0;pointer-events:none;z-index:8;
+                         background:linear-gradient(to right,
+                             #0a160d 0%, rgba(10,22,13,0.55) 12%,
+                             transparent 26%,
+                             transparent 74%,
+                             rgba(10,22,13,0.55) 88%, #0a160d 100%);"></div>
+
+                    <!-- Arrow prev -->
+                    <button id="carr-prev"
+                        style="position:absolute;left:14px;top:50%;transform:translateY(-50%);
+                               z-index:20;width:40px;height:40px;border-radius:50%;
+                               border:1px solid rgba(255,255,255,0.18);
+                               background:rgba(4,14,8,0.7);backdrop-filter:blur(8px);
+                               color:rgba(255,255,255,0.7);cursor:pointer;
+                               display:flex;align-items:center;justify-content:center;
+                               transition:border-color .2s,color .2s;">
+                        <i data-lucide="chevron-left" style="width:18px;height:18px;"></i>
+                    </button>
+
+                    <!-- Arrow next -->
+                    <button id="carr-next"
+                        style="position:absolute;right:14px;top:50%;transform:translateY(-50%);
+                               z-index:20;width:40px;height:40px;border-radius:50%;
+                               border:1px solid rgba(255,255,255,0.18);
+                               background:rgba(4,14,8,0.7);backdrop-filter:blur(8px);
+                               color:rgba(255,255,255,0.7);cursor:pointer;
+                               display:flex;align-items:center;justify-content:center;
+                               transition:border-color .2s,color .2s;">
+                        <i data-lucide="chevron-right" style="width:18px;height:18px;"></i>
+                    </button>
                 </div>
 
                 <!-- Dots -->
-                <div id="carr-dots" class="flex justify-center gap-2 mt-6"></div>
+                <div id="carr-dots" style="display:flex;justify-content:center;gap:8px;margin-top:20px;"></div>
             </div>
         </div>
     </section>
@@ -582,240 +593,155 @@
             }
         }, { passive: true });
 
-        // ══════════════════════════════════════════════════════
-        //  MBTI Poster Carousel — true infinite loop
-        //
-        //  Architecture:
-        //   • One flex track moves with translate3d — no per-card translateX.
-        //   • Per-card scale + opacity only.
-        //   • Clones: [clone_last | real_0 … real_n-1 | clone_first]
-        //     current=1 → first real slide.
-        //   • On transitionend, if on a clone → disable transition,
-        //     jump to real counterpart, re-enable in next rAF pair.
-        // ══════════════════════════════════════════════════════
+        // ══ MBTI Poster Carousel ══
         (function () {
-
-            const REAL    = [
+            const REAL = [
                 'assets/141772924712_.pic_hd.jpg',
                 'assets/151772924713_.pic_hd.jpg',
                 'assets/161772924715_.pic_hd.jpg',
                 'assets/171772924716_.pic_hd.jpg',
             ];
-            const n       = REAL.length;
-            // Full slide list including head/tail clones
-            const srcs    = [REAL[n - 1], ...REAL, REAL[0]];
-            const total   = srcs.length; // n + 2
+            const n    = REAL.length;
+            // Cloned list: [last, 0, 1, 2, 3, first]  → indices 0 … n+1
+            const srcs = [REAL[n - 1], ...REAL, REAL[0]];
 
-            const CARD_W  = 220;   // px
-            const CARD_GAP= 28;    // px  (gap between card flex items)
+            const CARD_W  = 230;
+            const CARD_GAP = 22;
             const STEP    = CARD_W + CARD_GAP;
-            const EASING  = 'cubic-bezier(0.22, 1, 0.36, 1)';
-            const DUR_MS  = 520;
+            const DUR     = 500;
+            const EASE    = 'cubic-bezier(0.22,1,0.36,1)';
 
-            const viewport= document.getElementById('carr-viewport');
+            const vp      = document.getElementById('carr-viewport');
             const track   = document.getElementById('carr-track');
-            const dotsWrap= document.getElementById('carr-dots');
-            const btnPrev = document.getElementById('carr-prev');
-            const btnNext = document.getElementById('carr-next');
-            if (!viewport) return;
+            const dotsEl  = document.getElementById('carr-dots');
+            const btnP    = document.getElementById('carr-prev');
+            const btnN    = document.getElementById('carr-next');
+            if (!vp) return;
 
-            let current   = 1;      // index into srcs[]
-            let locked    = false;  // blocks input during transition
+            let cur    = 1;      // active index in srcs (1 = first real slide)
+            let locked = false;
 
-            // ── 1. Build cards ─────────────────────────────────
-            track.style.gap = CARD_GAP + 'px';
+            // ── build cards ──────────────────────────────────────
+            track.style.cssText += `gap:${CARD_GAP}px;`;
 
             const cards = srcs.map((src, i) => {
-                const wrap = document.createElement('div');
-                wrap.style.cssText = `
-                    flex-shrink: 0;
-                    width: ${CARD_W}px;
-                    border-radius: 1rem;
-                    overflow: hidden;
-                    background: rgba(4,14,8,0.55);
-                    border: 1px solid rgba(255,255,255,0.09);
-                    box-shadow: 0 16px 40px rgba(0,0,0,0.5);
-                    cursor: pointer;
-                    transform-origin: center center;
-                    /* scale + opacity animated; translate is on the TRACK, not here */
-                    transition: transform ${DUR_MS}ms ${EASING},
-                                opacity  ${DUR_MS}ms ${EASING};
+                const c = document.createElement('div');
+                c.style.cssText = `
+                    flex-shrink:0; width:${CARD_W}px;
+                    border-radius:14px; overflow:hidden;
+                    background:rgba(4,14,8,0.55);
+                    border:1px solid rgba(255,255,255,0.1);
+                    box-shadow:0 14px 36px rgba(0,0,0,0.55);
+                    transform-origin:center center;
+                    cursor:pointer;
+                    transition:transform ${DUR}ms ${EASE}, opacity ${DUR}ms ${EASE};
                 `;
                 const img = document.createElement('img');
-                img.src = src;
-                img.draggable = false;
-                img.style.cssText = `
-                    width: 100%;
-                    aspect-ratio: 3 / 4;
-                    object-fit: cover;
-                    display: block;
-                    pointer-events: none;
-                `;
-                wrap.appendChild(img);
-                wrap.addEventListener('click', () => {
-                    const off = i - current;
-                    if (off === -1) advance(-1);
-                    else if (off === 1) advance(1);
+                img.src = src; img.draggable = false;
+                img.style.cssText = 'width:100%;aspect-ratio:3/4;object-fit:cover;display:block;pointer-events:none;';
+                c.appendChild(img);
+                c.addEventListener('click', () => {
+                    const off = i - cur;
+                    if (off === -1) go(-1);
+                    else if (off === 1) go(1);
                 });
-                track.appendChild(wrap);
-                return wrap;
+                track.appendChild(c);
+                return c;
             });
 
-            // ── 2. Build dots ───────────────────────────────────
-            const dots = REAL.map((_, i) => {
+            // ── build dots ────────────────────────────────────────
+            const dots = Array.from({length: n}, (_, i) => {
                 const d = document.createElement('button');
-                d.style.cssText = `
-                    width:6px; height:6px; border-radius:50%; border:none;
-                    cursor:pointer; padding:0;
-                    background: rgba(255,255,255,0.25);
-                    transition: background .3s, transform .3s;
-                `;
-                d.addEventListener('click', () => {
-                    if (!locked) moveTo(i + 1);   // +1 because of head clone
-                });
-                dotsWrap.appendChild(d);
+                d.style.cssText = 'width:6px;height:6px;border-radius:50%;border:none;padding:0;cursor:pointer;background:rgba(255,255,255,0.25);transition:background .3s,transform .3s;';
+                d.addEventListener('click', () => { if (!locked) jump(i + 1); });
+                dotsEl.appendChild(d);
                 return d;
             });
 
-            // ── 3. Geometry helpers ─────────────────────────────
-
-            // translateX that places card[idx] at the horizontal center of viewport
-            function trackXFor(idx) {
-                const vw = viewport.offsetWidth;
-                // card[idx] left-edge in the track (in track-local coords):  idx * STEP
-                // We want that left-edge + CARD_W/2  ===  vw/2
+            // ── geometry ──────────────────────────────────────────
+            function txFor(idx) {
+                const vw = vp.getBoundingClientRect().width || vp.offsetWidth;
                 return vw / 2 - CARD_W / 2 - idx * STEP;
             }
 
-            // Update viewport height to fit the tallest visible card (center scale 1.0)
-            function syncHeight() {
-                const CARD_H = CARD_W * 4 / 3;
-                viewport.style.height = (CARD_H + 24) + 'px'; // +24 for shadow room
-            }
+            // ── render ────────────────────────────────────────────
+            function paint(animate) {
+                // track position
+                track.style.transition = animate ? `transform ${DUR}ms ${EASE}` : 'none';
+                track.style.transform  = `translate3d(${txFor(cur)}px,0,0)`;
 
-            // ── 4. Apply styles ─────────────────────────────────
-
-            function applyTrackPos(animated) {
-                track.style.transition = animated
-                    ? `transform ${DUR_MS}ms ${EASING}`
-                    : 'none';
-                track.style.transform = `translate3d(${trackXFor(current)}px, 0, 0)`;
-            }
-
-            function applyCardStyles() {
-                cards.forEach((card, i) => {
-                    const off   = i - current;
-                    const isC   = off === 0;
-                    const isAdj = Math.abs(off) === 1;
-                    card.style.transform = `scale(${isC ? 1 : isAdj ? 0.82 : 0.70})`;
-                    card.style.opacity   =  isC ? 1 : isAdj ? 0.35 : 0.12;
-                    card.style.zIndex    =  isC ? 10 : isAdj ? 5 : 1;
+                // per-card scale + opacity
+                cards.forEach((c, i) => {
+                    const off = i - cur;
+                    const abs = Math.abs(off);
+                    c.style.transform = `scale(${abs === 0 ? 1 : abs === 1 ? 0.83 : 0.72})`;
+                    c.style.opacity   = abs === 0 ? '1' : abs === 1 ? '0.38' : '0.12';
+                    c.style.zIndex    = abs === 0 ? '10' : abs === 1 ? '5' : '1';
                 });
-            }
 
-            function applyDots() {
-                const realIdx = (current - 1 + n) % n;
+                // dots
+                const ri = (cur - 1 + n) % n;
                 dots.forEach((d, i) => {
-                    const active = i === realIdx;
-                    d.style.background = active ? '#6ee7b7' : 'rgba(255,255,255,0.25)';
-                    d.style.transform  = active ? 'scale(1.4)' : 'scale(1)';
+                    d.style.background = i === ri ? '#6ee7b7' : 'rgba(255,255,255,0.25)';
+                    d.style.transform  = i === ri ? 'scale(1.5)' : 'scale(1)';
                 });
+
+                // sync height to card
+                vp.style.height = (CARD_W * 4 / 3 + 40) + 'px';
             }
 
-            // Full render (track pos + card styles + dots)
-            function render(animated) {
-                applyTrackPos(animated);
-                applyCardStyles();
-                applyDots();
-            }
+            function jump(idx) { cur = idx; paint(true); }
 
-            // ── 5. Navigation ───────────────────────────────────
-
-            function moveTo(idx) {
-                current = idx;
-                render(true);
-            }
-
-            function advance(dir) {
+            function go(dir) {
                 if (locked) return;
                 locked = true;
-                moveTo(current + dir);
+                jump(cur + dir);
             }
 
-            // ── 6. Infinite loop: silent reposition after clone ──
-
+            // ── infinite loop via transitionend ───────────────────
             track.addEventListener('transitionend', e => {
                 if (e.target !== track || e.propertyName !== 'transform') return;
-
-                let jumped = false;
-                if (current === 0) {
-                    current = n;      // clone-of-last → real last
-                    jumped  = true;
-                } else if (current === n + 1) {
-                    current = 1;      // clone-of-first → real first
-                    jumped  = true;
-                }
-
-                if (jumped) {
-                    // Instant reposition — no visible jump
-                    applyTrackPos(false);
-                    applyCardStyles();
-                    applyDots();
-                    // Re-arm transition after paint
+                let warped = false;
+                if      (cur === 0)     { cur = n;     warped = true; }
+                else if (cur === n + 1) { cur = 1;     warped = true; }
+                if (warped) {
+                    paint(false); // instant snap
                     requestAnimationFrame(() =>
                         requestAnimationFrame(() => {
-                            track.style.transition = `transform ${DUR_MS}ms ${EASING}`;
+                            track.style.transition = `transform ${DUR}ms ${EASE}`;
                         })
                     );
                 }
-
                 locked = false;
             });
 
-            // ── 7. Input ────────────────────────────────────────
+            // ── controls ──────────────────────────────────────────
+            btnP.addEventListener('click', () => go(-1));
+            btnN.addEventListener('click', () => go(1));
 
-            btnPrev.addEventListener('click', () => advance(-1));
-            btnNext.addEventListener('click', () => advance(1));
-
-            // Touch
-            let tx0 = null;
-            viewport.addEventListener('touchstart', e => { tx0 = e.touches[0].clientX; }, { passive: true });
-            viewport.addEventListener('touchend',   e => {
-                if (tx0 === null) return;
-                const d = tx0 - e.changedTouches[0].clientX;
-                if (Math.abs(d) > 40) advance(d > 0 ? 1 : -1);
-                tx0 = null;
+            let t0 = null, m0 = null;
+            vp.addEventListener('touchstart', e => { t0 = e.touches[0].clientX; }, { passive: true });
+            vp.addEventListener('touchend',   e => {
+                if (t0 === null) return;
+                if (Math.abs(t0 - e.changedTouches[0].clientX) > 40) go(t0 > e.changedTouches[0].clientX ? 1 : -1);
+                t0 = null;
             });
-
-            // Mouse drag
-            let mx0 = null;
-            viewport.addEventListener('mousedown', e => {
-                mx0 = e.clientX;
-                viewport.style.cursor = 'grabbing';
-            });
+            vp.addEventListener('mousedown', e => { m0 = e.clientX; vp.style.cursor = 'grabbing'; });
             window.addEventListener('mouseup', e => {
-                if (mx0 === null) return;
-                const d = mx0 - e.clientX;
-                if (Math.abs(d) > 40) advance(d > 0 ? 1 : -1);
-                mx0 = null;
-                viewport.style.cursor = 'grab';
+                if (m0 === null) return;
+                if (Math.abs(m0 - e.clientX) > 40) go(m0 > e.clientX ? 1 : -1);
+                m0 = null; vp.style.cursor = 'grab';
             });
-            viewport.style.cursor = 'grab';
+            vp.style.cursor = 'grab';
 
-            // ── 8. Init ─────────────────────────────────────────
-
-            syncHeight();
-            render(false); // place everything instantly
-
-            // After first paint, arm the transition
+            // ── init ─────────────────────────────────────────────
+            paint(false);
             requestAnimationFrame(() =>
                 requestAnimationFrame(() => {
-                    track.style.transition = `transform ${DUR_MS}ms ${EASING}`;
+                    track.style.transition = `transform ${DUR}ms ${EASE}`;
                 })
             );
-
-            window.addEventListener('resize', () => { syncHeight(); render(false); });
-
+            window.addEventListener('resize', () => paint(false));
         })();
 
         // Stacked card hover — bring hovered card to front
