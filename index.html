@@ -596,8 +596,11 @@
             images.forEach((src, i) => {
                 const card = document.createElement('div');
                 card.className = 'carr-card';
+                // Anchor at track center so scale always pivots on the visual center
                 card.style.cssText = `
                     position: absolute;
+                    left: 50%;
+                    top: 50%;
                     width: ${CARD_W}px;
                     border-radius: 1rem;
                     overflow: hidden;
@@ -605,6 +608,7 @@
                     border: 1px solid rgba(255,255,255,0.09);
                     box-shadow: 0 16px 40px rgba(0,0,0,0.5);
                     cursor: pointer;
+                    transform-origin: center center;
                     transition: transform 0.55s cubic-bezier(0.22,1,0.36,1),
                                 opacity  0.55s cubic-bezier(0.22,1,0.36,1);
                     will-change: transform, opacity;
@@ -631,19 +635,20 @@
             function render() {
                 const cards = trackEl.querySelectorAll('.carr-card');
                 const dots  = dotsEl.querySelectorAll('button');
-                const vw = viewport.clientWidth;
 
                 cards.forEach((card, i) => {
                     const offset = i - current;
-                    const x = vw / 2 - CARD_W / 2 + offset * STEP;
-                    const isCenter = i === current;
+                    const isCenter   = offset === 0;
                     const isAdjacent = Math.abs(offset) === 1;
 
-                    let scale   = isCenter ? 1      : isAdjacent ? 0.86 : 0.75;
-                    let opacity = isCenter ? 1      : isAdjacent ? 0.38 : 0.15;
-                    let zIndex  = isCenter ? 10     : isAdjacent ? 5    : 1;
+                    const scale   = isCenter ? 1    : isAdjacent ? 0.82 : 0.70;
+                    const opacity = isCenter ? 1    : isAdjacent ? 0.35 : 0.12;
+                    const zIndex  = isCenter ? 10   : isAdjacent ? 5    : 1;
 
-                    card.style.transform = `translateX(${x}px) scale(${scale})`;
+                    // Base: -50% centers the card on the anchor point (left:50%, top:50%)
+                    // offset * STEP shifts adjacent cards left/right from that center
+                    const tx = offset * STEP;
+                    card.style.transform = `translate(calc(-50% + ${tx}px), -50%) scale(${scale})`;
                     card.style.opacity   = opacity;
                     card.style.zIndex    = zIndex;
                 });
