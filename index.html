@@ -572,19 +572,29 @@
             }
         }, { passive: true });
 
-        // ══ MBTI Poster Carousel ══
+        // ══ MBTI Poster Carousel — infinite loop via clones ══
         (function () {
-            const images = [
+            const REAL = [
                 'assets/141772924712_.pic_hd.jpg',
                 'assets/151772924713_.pic_hd.jpg',
                 'assets/161772924715_.pic_hd.jpg',
                 'assets/171772924716_.pic_hd.jpg',
             ];
-            const CARD_W   = 220;   // px, card width
-            const CARD_GAP = 28;    // px, gap between cards
-            const STEP = CARD_W + CARD_GAP;
+            const n = REAL.length;
 
-            let current = 0;
+            // Slide list: [clone-of-last, ...real, clone-of-first]
+            // Internal indices: 0 = clone-last, 1..n = real, n+1 = clone-first
+            const slides = [REAL[n - 1], ...REAL, REAL[0]];
+
+            const CARD_W   = 220;
+            const CARD_GAP = 28;
+            const STEP     = CARD_W + CARD_GAP;
+            const EASING   = 'cubic-bezier(0.22,1,0.36,1)';
+            const DUR      = '0.55s';
+
+            let current   = 1;   // start on first real slide
+            let animating = false;
+
             const viewport = document.getElementById('carr-viewport');
             const trackEl  = document.getElementById('carr-track');
             const dotsEl   = document.getElementById('carr-dots');
@@ -592,15 +602,12 @@
             const btnNext  = document.getElementById('carr-next');
             if (!viewport) return;
 
-            // Build cards
-            images.forEach((src, i) => {
+            // ── Build slide cards ──
+            const cards = slides.map((src, i) => {
                 const card = document.createElement('div');
-                card.className = 'carr-card';
-                // Anchor at track center so scale always pivots on the visual center
                 card.style.cssText = `
                     position: absolute;
-                    left: 50%;
-                    top: 50%;
+                    left: 50%; top: 50%;
                     width: ${CARD_W}px;
                     border-radius: 1rem;
                     overflow: hidden;
@@ -609,8 +616,6 @@
                     box-shadow: 0 16px 40px rgba(0,0,0,0.5);
                     cursor: pointer;
                     transform-origin: center center;
-                    transition: transform 0.55s cubic-bezier(0.22,1,0.36,1),
-                                opacity  0.55s cubic-bezier(0.22,1,0.36,1);
                     will-change: transform, opacity;
                 `;
                 const img = document.createElement('img');
@@ -618,66 +623,107 @@
                 img.alt = 'MBTI 板报';
                 img.style.cssText = 'width:100%; aspect-ratio:3/4; object-fit:cover; display:block;';
                 card.appendChild(img);
-                card.addEventListener('click', () => goTo(i));
+                // Click on adjacent → navigate; click on active → noop
+                card.addEventListener('click', () => {
+                    const off = i - current;
+                    if (off !== 0 && Math.abs(off) <= 1) goTo(current + off);
+                });
                 trackEl.appendChild(card);
+                return card;
             });
 
-            // Build dots
-            images.forEach((_, i) => {
+            // ── Build dots (n real slides) ──
+            const dots = REAL.map((_, i) => {
                 const d = document.createElement('button');
                 d.style.cssText = `width:6px;height:6px;border-radius:50%;border:none;cursor:pointer;
-                    transition: background 0.3s, transform 0.3s;
-                    background: rgba(255,255,255,0.25);`;
-                d.addEventListener('click', () => goTo(i));
+                    background:rgba(255,255,255,0.25);
+                    transition:background .3s,transform .3s;`;
+                d.addEventListener('click', () => goTo(i + 1)); // +1 for clone offset
                 dotsEl.appendChild(d);
+                return d;
             });
 
-            function render() {
-                const cards = trackEl.querySelectorAll('.carr-card');
-                const dots  = dotsEl.querySelectorAll('button');
+            // ── Set transition on all cards (or disable) ──
+            function setTransition(on) {
+                const t = on ? `transform ${DUR} ${EASING}, opacity ${DUR} ${EASING}` : 'none';
+                cards.forEach(c => c.style.transition = t);
+            }
 
+            // ── Render positions without caring about transition state ──
+            function render() {
                 cards.forEach((card, i) => {
-                    const offset = i - current;
+                    const offset     = i - current;
                     const isCenter   = offset === 0;
                     const isAdjacent = Math.abs(offset) === 1;
-
                     const scale   = isCenter ? 1    : isAdjacent ? 0.82 : 0.70;
                     const opacity = isCenter ? 1    : isAdjacent ? 0.35 : 0.12;
                     const zIndex  = isCenter ? 10   : isAdjacent ? 5    : 1;
-
-                    // Base: -50% centers the card on the anchor point (left:50%, top:50%)
-                    // offset * STEP shifts adjacent cards left/right from that center
-                    const tx = offset * STEP;
-                    card.style.transform = `translate(calc(-50% + ${tx}px), -50%) scale(${scale})`;
+                    card.style.transform = `translate(calc(-50% + ${offset * STEP}px), -50%) scale(${scale})`;
                     card.style.opacity   = opacity;
                     card.style.zIndex    = zIndex;
                 });
 
+                // Real index for dots: current 1..n maps to 0..n-1
+                const realIdx = (current - 1 + n) % n;
                 dots.forEach((d, i) => {
-                    d.style.background   = i === current ? '#6ee7b7' : 'rgba(255,255,255,0.25)';
-                    d.style.transform    = i === current ? 'scale(1.4)' : 'scale(1)';
+                    d.style.background = i === realIdx ? '#6ee7b7' : 'rgba(255,255,255,0.25)';
+                    d.style.transform  = i === realIdx ? 'scale(1.4)' : 'scale(1)';
                 });
             }
 
+            // ── Navigate ──
             function goTo(idx) {
-                current = Math.max(0, Math.min(images.length - 1, idx));
+                if (animating) return;
+                animating = true;
+                current = idx;
+                setTransition(true);
                 render();
             }
+
+            // ── After transition ends: silent jump if on a clone ──
+            trackEl.addEventListener('transitionend', e => {
+                if (e.propertyName !== 'transform') return;
+                if (e.target !== cards[current]) return;
+
+                let jumped = false;
+                if (current === 0) {
+                    // Was on clone-of-last → jump to real last
+                    current = n;
+                    jumped = true;
+                } else if (current === n + 1) {
+                    // Was on clone-of-first → jump to real first
+                    current = 1;
+                    jumped = true;
+                }
+
+                if (jumped) {
+                    setTransition(false);
+                    render();
+                    // Re-enable transition on next frame so the jump is invisible
+                    requestAnimationFrame(() => requestAnimationFrame(() => setTransition(true)));
+                }
+                animating = false;
+            });
 
             btnPrev.addEventListener('click', () => goTo(current - 1));
             btnNext.addEventListener('click', () => goTo(current + 1));
 
-            // Touch / drag swipe
+            // ── Touch swipe ──
             let touchStartX = null;
             viewport.addEventListener('touchstart', e => { touchStartX = e.touches[0].clientX; }, { passive: true });
-            viewport.addEventListener('touchend',   e => {
+            viewport.addEventListener('touchend', e => {
                 if (touchStartX === null) return;
                 const diff = touchStartX - e.changedTouches[0].clientX;
                 if (Math.abs(diff) > 40) goTo(current + (diff > 0 ? 1 : -1));
                 touchStartX = null;
             });
+
+            // ── Mouse drag ──
             let mouseStartX = null;
-            viewport.addEventListener('mousedown', e => { mouseStartX = e.clientX; viewport.style.cursor = 'grabbing'; });
+            viewport.addEventListener('mousedown', e => {
+                mouseStartX = e.clientX;
+                viewport.style.cursor = 'grabbing';
+            });
             window.addEventListener('mouseup', e => {
                 if (mouseStartX === null) return;
                 const diff = mouseStartX - e.clientX;
@@ -687,8 +733,10 @@
             });
             viewport.style.cursor = 'grab';
 
-            // Initial render after layout
-            setTimeout(render, 100);
+            // ── Init ──
+            setTransition(false);
+            render();
+            requestAnimationFrame(() => requestAnimationFrame(() => setTransition(true)));
             window.addEventListener('resize', render);
         })();
 
