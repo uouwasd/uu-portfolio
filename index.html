@@ -13,73 +13,109 @@
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;700&display=swap');
         
         :root {
-            --nature-green: #2D4F3C; /* 深森林绿 */
-            --sage-green: #4A6D5A;  /* 鼠尾草绿 */
-            --off-white: #F5F5F0;   /* 米白色 */
+            --nature-green: #1a2e22;
+            --off-white: #F0EFE8;
         }
 
+        * { box-sizing: border-box; }
+
         body { 
-            font-family: 'Noto Sans SC', sans-serif; 
+            font-family: 'Noto Sans SC', sans-serif;
             background-color: var(--nature-green);
             color: var(--off-white);
             overflow-x: hidden;
         }
 
-        /* 自然风格动态背景 */
-        .nature-bg {
+        /* ── 固定视差背景 ── */
+        .parallax-bg {
             position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: linear-gradient(135deg, #2D4F3C 0%, #1B3022 100%);
+            inset: 0;
+            background-image: url('assets/leaf-bg.png');
+            background-size: cover;
+            background-position: center;
             z-index: -2;
+            transform: scale(1.08);
+            will-change: transform;
         }
-
-        .floating-circle {
+        /* 深色叠加让文字可读 */
+        .parallax-bg::after {
+            content: '';
             position: absolute;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 50%;
-            filter: blur(60px);
+            inset: 0;
+            background: linear-gradient(160deg, rgba(10,25,15,0.82) 0%, rgba(20,45,28,0.75) 100%);
+        }
+
+        /* 细腻噪点纹理（高级感） */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
             z-index: -1;
-            animation: float 20s infinite alternate ease-in-out;
+            pointer-events: none;
+            opacity: 0.35;
         }
 
-        @keyframes float {
-            0% { transform: translate(0, 0) scale(1); }
-            100% { transform: translate(100px, 50px) scale(1.2); }
-        }
-
+        /* ── 导航 ── */
         .glass-nav {
-            background: rgba(45, 79, 60, 0.8);
-            backdrop-filter: blur(15px);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(10, 25, 15, 0.55);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border-bottom: 1px solid rgba(255,255,255,0.08);
         }
 
+        /* ── 内容区玻璃卡片 ── */
         .project-card {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.10);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            transition: all 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .project-card:hover {
+            transform: translateY(-8px);
+            background: rgba(255, 255, 255, 0.09);
+            border-color: rgba(255, 255, 255, 0.25);
+            box-shadow: 0 24px 48px rgba(0,0,0,0.4);
         }
 
-        .project-card:hover {
-            transform: translateY(-10px);
-            background: rgba(255, 255, 255, 0.1);
-            border-color: rgba(255, 255, 255, 0.3);
-            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+        /* ── Section 分隔玻璃层 ── */
+        .glass-section {
+            background: rgba(10, 22, 14, 0.45);
+            backdrop-filter: blur(2px);
+        }
+
+        /* ── 视差文字标题（慢速浮动） ── */
+        .parallax-text {
+            will-change: transform;
+            transition: transform 0.1s linear;
         }
 
         .pill {
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            padding: 4px 12px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            padding: 4px 14px;
             border-radius: 20px;
             font-size: 0.75rem;
+            letter-spacing: 0.04em;
         }
+
+        /* ── 分割线 ── */
+        .section-divider {
+            width: 40px;
+            height: 2px;
+            background: #6ee7b7;
+            margin: 0 auto 1.5rem;
+            border-radius: 2px;
+        }
+
+        /* ── 滚动进入动画补强 ── */
+        [data-aos] { backface-visibility: hidden; }
     </style>
 </head>
 <body>
 
-    <div class="nature-bg"></div>
-    <div class="floating-circle w-[500px] h-[500px] top-[-100px] right-[-100px]"></div>
-    <div class="floating-circle w-[400px] h-[400px] bottom-[-50px] left-[-50px]" style="animation-delay: -5s; background: rgba(74, 109, 90, 0.2);"></div>
+    <div class="parallax-bg" id="parallax-bg"></div>
 
     <nav class="fixed w-full z-50 glass-nav">
         <div class="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
@@ -121,7 +157,7 @@
         </div>
     </section>
 
-    <section id="about" class="py-24 relative overflow-hidden">
+    <section id="about" class="py-24 relative overflow-hidden glass-section">
         <div class="max-w-6xl mx-auto px-6">
             <div class="flex flex-col md:flex-row gap-16 items-center">
                 <div class="w-full md:w-1/2" data-aos="fade-right">
@@ -156,7 +192,7 @@
         </div>
     </section>
 
-    <section id="videos" class="py-24 bg-white/5">
+    <section id="videos" class="py-24 relative overflow-hidden">
         <div class="max-w-6xl mx-auto px-6">
             <h2 class="text-4xl font-bold text-center mb-4" data-aos="fade-up">Project</h2>
             <p class="text-xl text-emerald-300 font-semibold text-center mb-16" data-aos="fade-up" data-aos-delay="100">Euniverse品牌宣传视频</p>
@@ -177,9 +213,12 @@
         </div>
     </section>
 
-    <section id="mbti-posters" class="py-24 bg-white/5 relative overflow-hidden">
+    <section id="mbti-posters" class="py-24 relative overflow-hidden glass-section">
         <div class="max-w-6xl mx-auto px-6">
-            <h2 class="text-4xl font-bold text-center mb-16" data-aos="fade-up">为小红书账号设计的MBTI板报</h2>
+            <div class="text-center mb-16" data-aos="fade-up">
+                <p class="text-lg opacity-50 font-normal tracking-widest mb-2">为小红书账号设计的</p>
+                <h2 class="text-4xl font-bold">MBTI板报</h2>
+            </div>
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
                 <div class="project-card rounded-2xl overflow-hidden" data-aos="fade-up">
                     <img src="assets/141772924712_.pic_hd.jpg" alt="为小红书账号设计的MBTI板报" class="w-full aspect-[3/4] object-cover hover:scale-105 transition-transform duration-500">
@@ -197,7 +236,7 @@
         </div>
     </section>
 
-    <section id="mbti-growth" class="py-24 relative overflow-hidden">
+    <section id="mbti-growth" class="py-24 relative overflow-hidden glass-section">
         <div class="max-w-4xl mx-auto px-6">
             <h2 class="text-4xl font-bold text-center mb-4" data-aos="fade-up">小红书MBTI视频曝光量所致的</h2>
             <h2 class="text-4xl font-bold text-center mb-16 text-emerald-300" data-aos="fade-up" data-aos-delay="100">小程序测试的增长趋势</h2>
@@ -228,7 +267,14 @@
 
     <script>
         lucide.createIcons();
-        AOS.init({ once: false, mirror: true });
+        AOS.init({ once: false, mirror: true, duration: 900, easing: 'ease-out-cubic' });
+
+        // 视差背景：滚动时背景缓慢移动，内容正常速度
+        const bg = document.getElementById('parallax-bg');
+        window.addEventListener('scroll', () => {
+            const y = window.scrollY;
+            bg.style.transform = `scale(1.08) translateY(${y * 0.25}px)`;
+        }, { passive: true });
 
         // 鼠标悬停哪张图片就置顶
         const card1 = document.getElementById('rcard-1');
