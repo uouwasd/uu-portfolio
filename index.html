@@ -411,13 +411,6 @@
                     <div id="carr-track" style="display:flex; align-items:center; will-change:transform; padding:16px 0 24px;">
                     </div>
 
-                    <!-- Edge gradient — gives the "两边偏透明" fade without JS -->
-                    <div style="position:absolute;inset:0;pointer-events:none;z-index:8;
-                         background:linear-gradient(to right,
-                             #0a160d 0%, rgba(10,22,13,0.55) 12%,
-                             transparent 26%,
-                             transparent 74%,
-                             rgba(10,22,13,0.55) 88%, #0a160d 100%);"></div>
 
                     <!-- Arrow prev -->
                     <button id="carr-prev"
@@ -675,11 +668,29 @@
             function applyPositions() {
                 track.style.transform = `translate3d(${txFor(cur)}px,0,0)`;
                 cards.forEach((c, i) => {
-                    const abs = Math.abs(i - cur);
-                    c.style.transform = `scale(${abs === 0 ? 1 : abs === 1 ? 0.83 : 0.72})`;
-                    c.style.opacity   =  abs === 0 ? '1' : abs === 1 ? '0.4' : '0.14';
-                    c.style.zIndex    =  abs === 0 ? '10' : abs === 1 ? '5' : '1';
+                    const off = i - cur;   // signed offset
+                    const abs = Math.abs(off);
+
+                    // Next card (off === +1) gets extra prominence: bigger, more opaque
+                    // so it's clearly "waiting" before you navigate to it.
+                    let scale, opacity, zIndex;
+                    if (abs === 0) {
+                        scale = 1;    opacity = 1;    zIndex = 10;
+                    } else if (off === 1) {
+                        // upcoming next: more visible preview
+                        scale = 0.88; opacity = 0.55; zIndex = 7;
+                    } else if (off === -1) {
+                        // previous: slightly subtler
+                        scale = 0.83; opacity = 0.35; zIndex = 5;
+                    } else {
+                        scale = 0.72; opacity = 0.12; zIndex = 1;
+                    }
+
+                    c.style.transform = `scale(${scale})`;
+                    c.style.opacity   = String(opacity);
+                    c.style.zIndex    = String(zIndex);
                 });
+
                 const ri = (cur - 1 + n) % n;
                 dots.forEach((d, i) => {
                     d.style.background = i === ri ? '#6ee7b7' : 'rgba(255,255,255,0.25)';
