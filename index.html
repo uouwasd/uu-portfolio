@@ -8,300 +8,539 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
     <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
-    
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;700&display=swap');
-        
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&family=DM+Serif+Display:ital@0;1&display=swap');
+
         :root {
-            --nature-green: #1a2e22;
+            --emerald: #6ee7b7;
             --off-white: #F0EFE8;
+            --panel: rgba(4, 14, 8, 0.58);
+            --panel-border: rgba(255,255,255,0.08);
         }
 
         * { box-sizing: border-box; }
 
-        body { 
+        html { scroll-behavior: smooth; }
+
+        body {
             font-family: 'Noto Sans SC', sans-serif;
-            background-color: var(--nature-green);
             color: var(--off-white);
             overflow-x: hidden;
+            background: #0a160d;
         }
 
-        /* ── 固定视差背景 ── */
-        .parallax-bg {
+        /* ── Fixed parallax background ── */
+        #parallax-bg {
             position: fixed;
             inset: 0;
             background-image: url('assets/leaf-bg.png');
             background-size: cover;
-            background-position: center;
-            z-index: -2;
-            transform: scale(1.08);
+            background-position: center top;
+            z-index: -3;
+            transform: scale(1.1);
             will-change: transform;
         }
-        /* 深色叠加让文字可读 */
-        .parallax-bg::after {
+        /* Single, uniform dark overlay — no blur, preserves leaf detail */
+        #parallax-bg::after {
             content: '';
             position: absolute;
             inset: 0;
-            background: linear-gradient(160deg, rgba(10,25,15,0.82) 0%, rgba(20,45,28,0.75) 100%);
+            background: rgba(4, 14, 8, 0.62);
         }
 
-        /* 细腻噪点纹理（高级感） */
-        body::before {
-            content: '';
-            position: fixed;
-            inset: 0;
-            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
-            z-index: -1;
-            pointer-events: none;
-            opacity: 0.35;
+        /* ── Nav ── */
+        nav {
+            background: rgba(4, 14, 8, 0.50);
+            backdrop-filter: blur(18px) saturate(160%);
+            -webkit-backdrop-filter: blur(18px) saturate(160%);
+            border-bottom: 1px solid rgba(255,255,255,0.07);
         }
 
-        /* ── 导航 ── */
-        .glass-nav {
-            background: rgba(10, 25, 15, 0.55);
-            backdrop-filter: blur(20px) saturate(180%);
-            -webkit-backdrop-filter: blur(20px) saturate(180%);
-            border-bottom: 1px solid rgba(255,255,255,0.08);
+        /* ── Content panel — thin dark backing ── */
+        .panel {
+            background: var(--panel);
+            border: 1px solid var(--panel-border);
+            border-radius: 1.25rem;
         }
 
-        /* ── 内容区玻璃卡片 ── */
-        .project-card {
-            background: rgba(255, 255, 255, 0.04);
-            border: 1px solid rgba(255, 255, 255, 0.10);
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
-            transition: all 0.45s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        .project-card:hover {
-            transform: translateY(-8px);
-            background: rgba(255, 255, 255, 0.09);
-            border-color: rgba(255, 255, 255, 0.25);
-            box-shadow: 0 24px 48px rgba(0,0,0,0.4);
+        /* ── Section label ── */
+        .section-label {
+            font-size: 0.68rem;
+            letter-spacing: 0.22em;
+            text-transform: uppercase;
+            color: var(--emerald);
+            opacity: 0.75;
         }
 
-        /* ── Section 分隔玻璃层 ── */
-        .glass-section {
-            background: rgba(10, 22, 14, 0.45);
-            backdrop-filter: blur(2px);
-        }
-
-        /* ── 视差文字标题（慢速浮动） ── */
-        .parallax-text {
-            will-change: transform;
-            transition: transform 0.1s linear;
-        }
-
-        .pill {
-            background: rgba(255, 255, 255, 0.08);
-            border: 1px solid rgba(255, 255, 255, 0.18);
-            padding: 4px 14px;
-            border-radius: 20px;
-            font-size: 0.75rem;
-            letter-spacing: 0.04em;
-        }
-
-        /* ── 分割线 ── */
-        .section-divider {
-            width: 40px;
+        /* ── Accent line ── */
+        .accent-line {
+            display: block;
+            width: 32px;
             height: 2px;
-            background: #6ee7b7;
-            margin: 0 auto 1.5rem;
+            background: var(--emerald);
             border-radius: 2px;
+            margin-bottom: 1.25rem;
         }
 
-        /* ── 滚动进入动画补强 ── */
+        /* ── Card ── */
+        .card {
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.09);
+            border-radius: 1rem;
+            transition: transform 0.38s cubic-bezier(0.22,1,0.36,1),
+                        box-shadow 0.38s cubic-bezier(0.22,1,0.36,1),
+                        background 0.38s ease,
+                        border-color 0.38s ease;
+        }
+        .card:hover {
+            transform: translateY(-7px);
+            background: rgba(255,255,255,0.08);
+            border-color: rgba(110,231,183,0.22);
+            box-shadow: 0 20px 48px rgba(0,0,0,0.45);
+        }
+
+        /* ── Poster card ── */
+        .poster-card {
+            border-radius: 0.875rem;
+            overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.09);
+            transition: transform 0.38s cubic-bezier(0.22,1,0.36,1),
+                        box-shadow 0.38s cubic-bezier(0.22,1,0.36,1);
+        }
+        .poster-card:hover {
+            transform: translateY(-6px) scale(1.01);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+        }
+        .poster-card img {
+            display: block;
+            width: 100%;
+            aspect-ratio: 3/4;
+            object-fit: cover;
+            transition: transform 0.5s ease;
+        }
+        .poster-card:hover img { transform: scale(1.04); }
+
+        /* ── Video card ── */
+        .video-card {
+            border-radius: 1.25rem;
+            overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.09);
+            transition: transform 0.38s cubic-bezier(0.22,1,0.36,1),
+                        box-shadow 0.38s ease;
+        }
+        .video-card:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 24px 50px rgba(0,0,0,0.5);
+        }
+
+        /* ── Primary button ── */
+        .btn-primary {
+            background: #fff;
+            color: #0f2b18;
+            font-weight: 700;
+            padding: 0.9rem 2.2rem;
+            border-radius: 0.75rem;
+            transition: transform 0.25s ease, box-shadow 0.25s ease;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 28px rgba(0,0,0,0.35);
+        }
+
+        /* ── Ghost button ── */
+        .btn-ghost {
+            border: 1px solid rgba(255,255,255,0.2);
+            padding: 0.9rem 2.2rem;
+            border-radius: 0.75rem;
+            transition: background 0.25s ease, border-color 0.25s ease;
+        }
+        .btn-ghost:hover {
+            background: rgba(255,255,255,0.08);
+            border-color: rgba(255,255,255,0.35);
+        }
+
+        /* ── Section divider ── */
+        .section-sep {
+            width: 100%;
+            height: 1px;
+            background: linear-gradient(to right, transparent, rgba(255,255,255,0.08), transparent);
+            margin: 0;
+        }
+
+        /* ── Skill tag ── */
+        .tag {
+            font-size: 0.72rem;
+            letter-spacing: 0.04em;
+            background: rgba(110,231,183,0.1);
+            border: 1px solid rgba(110,231,183,0.2);
+            color: #a7f3d0;
+            padding: 3px 12px;
+            border-radius: 20px;
+        }
+
+        /* ── Contact link ── */
+        .contact-link {
+            border-bottom: 1px solid rgba(255,255,255,0.15);
+            padding-bottom: 0.4rem;
+            transition: border-color 0.25s, color 0.25s;
+        }
+        .contact-link:hover { border-color: var(--emerald); color: var(--emerald); }
+
         [data-aos] { backface-visibility: hidden; }
+
+        /* ── Falling leaves ── */
+        .leaf {
+            position: fixed;
+            top: -80px;
+            pointer-events: none;
+            z-index: 10;
+            opacity: 0;
+            animation: leafFall linear forwards;
+        }
+        .leaf img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+        @keyframes leafFall {
+            0%   { opacity: 0;   transform: translateY(0)    rotate(0deg)   translateX(0px); }
+            8%   { opacity: 0.7; }
+            85%  { opacity: 0.55; }
+            100% { opacity: 0;   transform: translateY(105vh) rotate(var(--rot)) translateX(var(--drift)); }
+        }
     </style>
 </head>
 <body>
 
-    <div class="parallax-bg" id="parallax-bg"></div>
+    <div id="parallax-bg"></div>
 
-    <nav class="fixed w-full z-50 glass-nav">
+    <!-- ── Navigation ── -->
+    <nav class="fixed w-full z-50">
         <div class="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
-            <span class="text-2xl font-bold tracking-widest text-white">WU.</span>
-            <div class="hidden md:flex space-x-8 text-sm font-medium">
-                <a href="#about" class="hover:text-emerald-300 transition">关于我</a>
-                <a href="#videos" class="hover:text-emerald-300 transition">视频</a>
-                <a href="#mbti-posters" class="hover:text-emerald-300 transition">为小红书账号设计的MBTI板报</a>
-                <a href="#mbti-growth" class="hover:text-emerald-300 transition">MBTI增长趋势</a>
-                <a href="#contact" class="px-5 py-2 bg-white text-emerald-900 rounded-full hover:bg-emerald-100 transition">联系我</a>
+            <span class="text-xl font-bold tracking-[0.2em] text-white">WU.</span>
+            <div class="hidden md:flex items-center gap-7 text-[0.8rem] font-medium opacity-85">
+                <a href="#about"       class="hover:text-emerald-300 transition">关于我</a>
+                <a href="#work"        class="hover:text-emerald-300 transition">作品</a>
+                <a href="#mbti-posters"class="hover:text-emerald-300 transition">MBTI 板报</a>
+                <a href="#mbti-growth" class="hover:text-emerald-300 transition">增长数据</a>
+                <a href="#contact"     class="ml-2 px-5 py-2 border border-white/20 rounded-full hover:bg-white/10 transition">联系我</a>
             </div>
         </div>
     </nav>
 
-    <section class="relative min-h-screen flex items-center pt-20">
-        <div class="max-w-6xl mx-auto px-6 grid md:grid-cols-2 gap-12 items-center">
-            <div data-aos="fade-up" data-aos-duration="1000">
-                <span class="inline-block px-4 py-1.5 border border-white/20 rounded-full text-xs font-semibold mb-6 uppercase tracking-widest opacity-80">心理学 × 增长营销 × 创意视频</span>
-                <h1 class="text-5xl md:text-7xl font-bold leading-tight mb-6 text-white">
-                    您好, 我是 <span class="text-emerald-300">吴姝贤.</span>
+    <!-- ══════════════════════════════════════════
+         HERO
+    ══════════════════════════════════════════ -->
+    <section id="hero" class="relative min-h-screen flex items-center pt-24 pb-16">
+        <div class="max-w-6xl mx-auto px-6 w-full grid md:grid-cols-2 gap-16 items-center">
+
+            <!-- Left: Text -->
+            <div data-aos="fade-up" data-aos-duration="900">
+                <span class="section-label mb-5 block">Psychology × Growth Marketing × Creative Video</span>
+                <h1 class="text-[clamp(3rem,7vw,5.5rem)] font-bold leading-[1.05] tracking-tight mb-6 text-white">
+                    您好,<br>我是<span class="text-emerald-300"> 吴姝贤.</span>
                 </h1>
-                <p class="text-lg opacity-80 mb-8 leading-relaxed max-w-lg">
-                    NYU纽约大学在读，深耕心理学与商业研究。擅长从用户行为视角切入，用数据和创意驱动国际化市场的增长。
+                <p class="text-base md:text-lg opacity-65 mb-10 leading-relaxed max-w-md">
+                    NYU 纽约大学在读，深耕心理学与商业研究。擅长从用户行为视角切入，用数据和创意驱动国际化市场的增长。
                 </p>
                 <div class="flex flex-wrap gap-4">
-                    <a href="#videos" class="px-8 py-4 bg-white text-emerald-900 font-bold rounded-xl shadow-lg hover:scale-105 transition-transform">观看视频</a>
-                    <a href="#about" class="px-8 py-4 border border-white/20 rounded-xl hover:bg-white/10 transition">关于我</a>
+                    <a href="#work"  class="btn-primary">查看作品</a>
+                    <a href="#about" class="btn-ghost">关于我</a>
                 </div>
             </div>
-            <div class="relative hidden md:block" data-aos="zoom-in" data-aos-duration="1200">
-                <div class="aspect-[4/5] rounded-[2rem] overflow-hidden shadow-2xl rotate-2 hover:rotate-0 transition-transform duration-700 border-4 border-white/10">
-                   <img src="assets/image.png" alt="吴姝贤" class="w-full h-full object-cover">
+
+            <!-- Right: Photo -->
+            <div class="relative hidden md:flex justify-center items-center"
+                 data-aos="fade-up" data-aos-duration="1100" data-aos-delay="150">
+                <div class="w-[340px] aspect-[4/5] rounded-[2rem] overflow-hidden shadow-2xl
+                            rotate-2 hover:rotate-0 transition-transform duration-700
+                            border border-white/10">
+                    <img src="assets/image.png" alt="吴姝贤" class="w-full h-full object-cover">
                 </div>
-                <div class="absolute -bottom-6 -left-6 bg-emerald-800 p-6 rounded-2xl shadow-xl border border-white/20" data-aos="fade-right" data-aos-delay="500">
+                <!-- GPA badge -->
+                <div class="panel absolute -bottom-4 -left-4 px-5 py-4 shadow-xl"
+                     data-aos="fade-right" data-aos-delay="500">
                     <p class="text-2xl font-bold">3.64</p>
-                    <p class="text-[10px] uppercase opacity-60">NYU GPA (Psychology)</p>
+                    <p class="text-[0.65rem] uppercase opacity-50 tracking-widest mt-0.5">NYU GPA · Psychology</p>
                 </div>
             </div>
         </div>
+
+        <!-- Scroll cue -->
+        <div class="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 opacity-30"
+             data-aos="fade-up" data-aos-delay="800">
+            <span class="text-[0.6rem] uppercase tracking-[0.2em]">scroll</span>
+            <div class="w-px h-8 bg-white/50"></div>
+        </div>
     </section>
 
-    <section id="about" class="py-24 relative overflow-hidden glass-section">
+    <div class="section-sep"></div>
+
+    <!-- ══════════════════════════════════════════
+         ABOUT
+    ══════════════════════════════════════════ -->
+    <section id="about" class="py-28 relative">
         <div class="max-w-6xl mx-auto px-6">
-            <div class="flex flex-col md:flex-row gap-16 items-center">
-                <div class="w-full md:w-1/2" data-aos="fade-right">
-                    <h2 class="text-4xl font-bold mb-8">跨文化视野与<br>理性的深度洞察</h2>
-                    <p class="opacity-70 leading-relaxed mb-6">
-                        自小学起在美国学习和生活，具备流利的中英文沟通能力和良好的跨文化理解。在NYU的学习中接触了心理学研究方法、实验设计以及数据分析（R语言、回归分析等），能够通过数据整理与分析理解用户行为，并在项目中进行简单的数据复盘和策略优化。
-                    </p>
+
+            <div class="mb-14" data-aos="fade-up">
+                <span class="section-label">About</span>
+                <span class="accent-line mt-2"></span>
+                <h2 class="text-3xl md:text-4xl font-bold leading-snug">
+                    跨文化视野与<br>理性的深度洞察
+                </h2>
+            </div>
+
+            <div class="grid md:grid-cols-2 gap-14 items-start">
+
+                <!-- Left: Bio + skills -->
+                <div data-aos="fade-right" data-aos-duration="800">
+                    <div class="panel p-8 mb-6">
+                        <p class="opacity-70 leading-[1.9] text-[0.95rem]">
+                            自小学起在美国学习和生活，具备流利的中英文沟通能力和良好的跨文化理解。在 NYU 的学习中接触了心理学研究方法、实验设计以及数据分析（R语言、回归分析等），能够通过数据整理与分析理解用户行为，并在项目中进行简单的数据复盘和策略优化。
+                        </p>
+                    </div>
+
                     <div class="grid grid-cols-2 gap-4">
-                        <div class="p-6 project-card rounded-2xl">
-                            <i data-lucide="brain" class="mb-3 text-emerald-300"></i>
-                            <h4 class="font-bold mb-1">用户洞察</h4>
-                            <p class="text-xs opacity-50">基于社会心理学的行为动机分析</p>
+                        <div class="card p-6">
+                            <i data-lucide="brain" class="w-5 h-5 mb-3 text-emerald-300"></i>
+                            <h4 class="font-semibold mb-1 text-sm">用户洞察</h4>
+                            <p class="text-[0.72rem] opacity-45 leading-relaxed">基于社会心理学的行为动机分析</p>
                         </div>
-                        <div class="p-6 project-card rounded-2xl">
-                            <i data-lucide="video" class="mb-3 text-emerald-300"></i>
-                            <h4 class="font-bold mb-1">内容制作</h4>
-                            <p class="text-xs opacity-50">AI辅助短视频全链路创作</p>
+                        <div class="card p-6">
+                            <i data-lucide="video" class="w-5 h-5 mb-3 text-emerald-300"></i>
+                            <h4 class="font-semibold mb-1 text-sm">内容制作</h4>
+                            <p class="text-[0.72rem] opacity-45 leading-relaxed">AI 辅助短视频全链路创作</p>
+                        </div>
+                        <div class="card p-6">
+                            <i data-lucide="bar-chart-2" class="w-5 h-5 mb-3 text-emerald-300"></i>
+                            <h4 class="font-semibold mb-1 text-sm">数据分析</h4>
+                            <p class="text-[0.72rem] opacity-45 leading-relaxed">R 语言 · 回归分析 · 数据复盘</p>
+                        </div>
+                        <div class="card p-6">
+                            <i data-lucide="globe" class="w-5 h-5 mb-3 text-emerald-300"></i>
+                            <h4 class="font-semibold mb-1 text-sm">跨文化沟通</h4>
+                            <p class="text-[0.72rem] opacity-45 leading-relaxed">中英双语 · 国际化视角</p>
                         </div>
                     </div>
                 </div>
-                <div class="w-full md:w-1/2 relative flex items-center justify-center" style="height: 420px;" data-aos="fade-left">
-                    <div id="rcard-2" class="absolute w-4/5 rounded-2xl overflow-hidden border border-white/20 shadow-2xl cursor-pointer"
-                         style="top: 40px; right: 0; transform: rotate(4deg); z-index: 1; transition: transform 0.4s ease, box-shadow 0.4s ease, z-index 0s;">
-                        <img src="assets/rstudio-2.png" alt="RStudio 数据分析 2" class="w-full object-contain opacity-90">
+
+                <!-- Right: Stacked RStudio screenshots -->
+                <div class="relative flex items-center justify-center"
+                     style="height:420px;" data-aos="fade-left" data-aos-duration="800">
+                    <div id="rcard-2"
+                         class="absolute w-4/5 rounded-2xl overflow-hidden border border-white/15 shadow-2xl cursor-pointer"
+                         style="top:40px;right:0;transform:rotate(4deg);z-index:1;
+                                transition:transform .4s cubic-bezier(.22,1,.36,1),box-shadow .4s ease;">
+                        <img src="assets/rstudio-2.png" alt="RStudio 2" class="w-full object-contain opacity-85">
                     </div>
-                    <div id="rcard-1" class="absolute w-4/5 rounded-2xl overflow-hidden border border-white/30 shadow-2xl cursor-pointer"
-                         style="top: 0; left: 0; transform: rotate(-3deg); z-index: 2; transition: transform 0.4s ease, box-shadow 0.4s ease, z-index 0s;">
-                        <img src="assets/rstudio-1.png" alt="RStudio 数据分析 1" class="w-full object-contain">
+                    <div id="rcard-1"
+                         class="absolute w-4/5 rounded-2xl overflow-hidden border border-white/20 shadow-2xl cursor-pointer"
+                         style="top:0;left:0;transform:rotate(-3deg);z-index:2;
+                                transition:transform .4s cubic-bezier(.22,1,.36,1),box-shadow .4s ease;">
+                        <img src="assets/rstudio-1.png" alt="RStudio 1" class="w-full object-contain">
                     </div>
+                    <p class="absolute bottom-0 right-0 text-[0.62rem] opacity-30 uppercase tracking-widest">hover to explore</p>
                 </div>
             </div>
         </div>
     </section>
 
-    <section id="videos" class="py-24 relative overflow-hidden">
+    <div class="section-sep"></div>
+
+    <!-- ══════════════════════════════════════════
+         SELECTED WORK — Videos
+    ══════════════════════════════════════════ -->
+    <section id="work" class="py-28 relative">
         <div class="max-w-6xl mx-auto px-6">
-            <h2 class="text-4xl font-bold text-center mb-4" data-aos="fade-up">Project</h2>
-            <p class="text-xl text-emerald-300 font-semibold text-center mb-16" data-aos="fade-up" data-aos-delay="100">Euniverse品牌宣传视频</p>
-            <div class="grid md:grid-cols-2 gap-10">
-                <div class="project-card rounded-[2rem] overflow-hidden" data-aos="fade-up">
-                    <video class="w-full aspect-video object-cover bg-black/30" controls playsinline>
+
+            <div class="mb-14" data-aos="fade-up">
+                <span class="section-label">Selected Work</span>
+                <span class="accent-line mt-2"></span>
+                <h2 class="text-3xl md:text-4xl font-bold">Euniverse</h2>
+                <p class="text-emerald-300 font-medium mt-1 opacity-90">品牌宣传视频</p>
+            </div>
+
+            <div class="grid md:grid-cols-2 gap-8">
+                <div class="video-card" data-aos="fade-up" data-aos-duration="700">
+                    <video class="w-full aspect-video bg-black" controls playsinline>
                         <source src="assets/18_1772924722_raw.mp4" type="video/mp4">
-                        您的浏览器不支持视频播放。
                     </video>
                 </div>
-                <div class="project-card rounded-[2rem] overflow-hidden" data-aos="fade-up" data-aos-delay="200">
-                    <video class="w-full aspect-video object-cover bg-black/30" controls playsinline>
+                <div class="video-card" data-aos="fade-up" data-aos-duration="700" data-aos-delay="150">
+                    <video class="w-full aspect-video bg-black" controls playsinline>
                         <source src="assets/19_1772924738_raw.mp4" type="video/mp4">
-                        您的浏览器不支持视频播放。
                     </video>
                 </div>
             </div>
         </div>
     </section>
 
-    <section id="mbti-posters" class="py-24 relative overflow-hidden glass-section">
+    <div class="section-sep"></div>
+
+    <!-- ══════════════════════════════════════════
+         MBTI POSTERS
+    ══════════════════════════════════════════ -->
+    <section id="mbti-posters" class="py-28 relative">
         <div class="max-w-6xl mx-auto px-6">
-            <div class="text-center mb-16" data-aos="fade-up">
-                <p class="text-lg opacity-50 font-normal tracking-widest mb-2">为小红书账号设计的</p>
-                <h2 class="text-4xl font-bold">MBTI板报</h2>
+
+            <div class="mb-14" data-aos="fade-up">
+                <span class="section-label">Visual Design</span>
+                <span class="accent-line mt-2"></span>
+                <p class="text-base opacity-45 mb-1">为小红书账号设计的</p>
+                <h2 class="text-3xl md:text-4xl font-bold">MBTI 板报</h2>
             </div>
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-                <div class="project-card rounded-2xl overflow-hidden" data-aos="fade-up">
-                    <img src="assets/141772924712_.pic_hd.jpg" alt="为小红书账号设计的MBTI板报" class="w-full aspect-[3/4] object-cover hover:scale-105 transition-transform duration-500">
+
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-5">
+                <div class="poster-card" data-aos="fade-up" data-aos-duration="700">
+                    <img src="assets/141772924712_.pic_hd.jpg" alt="MBTI 板报">
                 </div>
-                <div class="project-card rounded-2xl overflow-hidden" data-aos="fade-up" data-aos-delay="100">
-                    <img src="assets/151772924713_.pic_hd.jpg" alt="为小红书账号设计的MBTI板报" class="w-full aspect-[3/4] object-cover hover:scale-105 transition-transform duration-500">
+                <div class="poster-card" data-aos="fade-up" data-aos-duration="700" data-aos-delay="80">
+                    <img src="assets/151772924713_.pic_hd.jpg" alt="MBTI 板报">
                 </div>
-                <div class="project-card rounded-2xl overflow-hidden" data-aos="fade-up" data-aos-delay="200">
-                    <img src="assets/161772924715_.pic_hd.jpg" alt="为小红书账号设计的MBTI板报" class="w-full aspect-[3/4] object-cover hover:scale-105 transition-transform duration-500">
+                <div class="poster-card" data-aos="fade-up" data-aos-duration="700" data-aos-delay="160">
+                    <img src="assets/161772924715_.pic_hd.jpg" alt="MBTI 板报">
                 </div>
-                <div class="project-card rounded-2xl overflow-hidden" data-aos="fade-up" data-aos-delay="300">
-                    <img src="assets/171772924716_.pic_hd.jpg" alt="为小红书账号设计的MBTI板报" class="w-full aspect-[3/4] object-cover hover:scale-105 transition-transform duration-500">
+                <div class="poster-card" data-aos="fade-up" data-aos-duration="700" data-aos-delay="240">
+                    <img src="assets/171772924716_.pic_hd.jpg" alt="MBTI 板报">
                 </div>
             </div>
         </div>
     </section>
 
-    <section id="mbti-growth" class="py-24 relative overflow-hidden glass-section">
+    <div class="section-sep"></div>
+
+    <!-- ══════════════════════════════════════════
+         MBTI GROWTH DATA
+    ══════════════════════════════════════════ -->
+    <section id="mbti-growth" class="py-28 relative">
         <div class="max-w-4xl mx-auto px-6">
-            <h2 class="text-4xl font-bold text-center mb-4" data-aos="fade-up">小红书MBTI视频曝光量所致的</h2>
-            <h2 class="text-4xl font-bold text-center mb-16 text-emerald-300" data-aos="fade-up" data-aos-delay="100">小程序测试的增长趋势</h2>
-            <div class="project-card rounded-2xl overflow-hidden max-w-lg mx-auto" data-aos="zoom-in">
-                <img src="assets/131772924710_.pic_hd.jpg" alt="小程序测试增长趋势" class="w-full object-contain hover:scale-105 transition-transform duration-500">
+
+            <div class="mb-14 text-center" data-aos="fade-up">
+                <span class="section-label">Growth Analytics</span>
+                <span class="accent-line mt-2 mx-auto"></span>
+                <p class="text-base opacity-45 mb-1">小红书 MBTI 视频曝光量所致的</p>
+                <h2 class="text-3xl md:text-4xl font-bold">小程序测试的增长趋势</h2>
+            </div>
+
+            <div class="panel p-3 max-w-2xl mx-auto" data-aos="zoom-in" data-aos-duration="800">
+                <div class="rounded-xl overflow-hidden">
+                    <img src="assets/131772924710_.pic_hd.jpg" alt="增长趋势"
+                         class="w-full object-contain hover:scale-[1.02] transition-transform duration-500">
+                </div>
             </div>
         </div>
     </section>
 
-    <section id="contact" class="py-32">
-        <div class="max-w-4xl mx-auto px-6 text-center" data-aos="zoom-out">
-            <h2 class="text-5xl font-bold mb-8 text-white">期待与你交流</h2>
-            <p class="text-xl opacity-60 mb-12">无论你是寻求增长方案的招聘官，还是想聊聊产品逻辑的合作伙伴。</p>
-            
-            <div class="flex flex-col md:flex-row justify-center gap-8 mb-16">
-                <a href="mailto:yoyo20060628@qq.com" class="flex items-center justify-center gap-3 text-lg border-b border-white/20 pb-2 hover:border-emerald-300 transition">
-                    <i data-lucide="mail"></i> yoyo20060628@qq.com
+    <div class="section-sep"></div>
+
+    <!-- ══════════════════════════════════════════
+         CONTACT
+    ══════════════════════════════════════════ -->
+    <section id="contact" class="py-32 relative">
+        <div class="max-w-3xl mx-auto px-6 text-center">
+
+            <div data-aos="fade-up" data-aos-duration="800">
+                <span class="section-label mb-4 block">Get in touch</span>
+                <h2 class="text-4xl md:text-5xl font-bold mb-5">期待与你交流</h2>
+                <p class="text-base opacity-50 mb-14 max-w-sm mx-auto leading-relaxed">
+                    无论你是寻求增长方案的招聘官，<br>还是想聊聊产品逻辑的合作伙伴。
+                </p>
+            </div>
+
+            <div class="flex flex-col md:flex-row justify-center gap-10 mb-24"
+                 data-aos="fade-up" data-aos-delay="100">
+                <a href="mailto:yoyo20060628@qq.com"
+                   class="contact-link flex items-center justify-center gap-3 text-base">
+                    <i data-lucide="mail" class="w-4 h-4"></i> yoyo20060628@qq.com
                 </a>
-                <a href="#" class="flex items-center justify-center gap-3 text-lg border-b border-white/20 pb-2 hover:border-emerald-300 transition">
-                    <i data-lucide="linkedin"></i> LinkedIn
+                <a href="#"
+                   class="contact-link flex items-center justify-center gap-3 text-base">
+                    <i data-lucide="linkedin" class="w-4 h-4"></i> LinkedIn
                 </a>
             </div>
-            
-            <p class="text-5xl md:text-7xl font-bold mb-8 opacity-40">恁慢走勒</p>
-            <p class="text-[10px] opacity-30 uppercase tracking-[0.5em]">© 2026 SHUXIAN WU | PSYCHOLOGY & GROWTH</p>
+
+            <p class="text-5xl md:text-7xl font-bold opacity-[0.18] mb-10 select-none"
+               data-aos="fade-up" data-aos-delay="200">恁慢走勒</p>
+
+            <p class="text-[0.6rem] opacity-20 uppercase tracking-[0.5em]">
+                © 2026 Shuxian Wu · Psychology & Growth
+            </p>
         </div>
     </section>
 
     <script>
         lucide.createIcons();
-        AOS.init({ once: false, mirror: true, duration: 900, easing: 'ease-out-cubic' });
+        AOS.init({ once: false, mirror: true, duration: 800, easing: 'ease-out-cubic', offset: 60 });
 
-        // 视差背景：滚动时背景缓慢移动，内容正常速度
         const bg = document.getElementById('parallax-bg');
+
+        // ── Falling leaves on scroll ──
+        let lastScroll = 0;
+        let leafCount = 0;
+        const MAX_LEAVES = 6; // max on screen at once
+
+        function spawnLeaf() {
+            if (leafCount >= MAX_LEAVES) return;
+            leafCount++;
+
+            const leaf = document.createElement('div');
+            leaf.className = 'leaf';
+
+            // Random size: small (28–48px)
+            const size = 28 + Math.random() * 20;
+            leaf.style.width  = size + 'px';
+            leaf.style.height = size + 'px';
+
+            // Random horizontal start
+            leaf.style.left = (5 + Math.random() * 88) + 'vw';
+
+            // Random rotation and horizontal drift
+            const rot   = (Math.random() > 0.5 ? 1 : -1) * (120 + Math.random() * 200);
+            const drift = (Math.random() > 0.5 ? 1 : -1) * (30 + Math.random() * 60);
+            leaf.style.setProperty('--rot',   rot + 'deg');
+            leaf.style.setProperty('--drift', drift + 'px');
+
+            // Duration 5–9s
+            const dur = 5 + Math.random() * 4;
+            leaf.style.animationDuration = dur + 's';
+
+            const img = document.createElement('img');
+            img.src = 'assets/leaf-fall.png';
+            img.alt = '';
+            leaf.appendChild(img);
+            document.body.appendChild(leaf);
+
+            leaf.addEventListener('animationend', () => {
+                leaf.remove();
+                leafCount--;
+            });
+        }
+
+        // Throttled scroll trigger
+        let scrollTimer = null;
         window.addEventListener('scroll', () => {
             const y = window.scrollY;
-            bg.style.transform = `scale(1.08) translateY(${y * 0.25}px)`;
+            // Parallax bg
+            bg.style.transform = `scale(1.1) translateY(${y * 0.22}px)`;
+
+            // Spawn leaf only when actually scrolling down
+            if (y > lastScroll + 80) {
+                lastScroll = y;
+                if (!scrollTimer) {
+                    spawnLeaf();
+                    scrollTimer = setTimeout(() => { scrollTimer = null; }, 900);
+                }
+            }
         }, { passive: true });
 
-        // 鼠标悬停哪张图片就置顶
-        const card1 = document.getElementById('rcard-1');
-        const card2 = document.getElementById('rcard-2');
-        card1.addEventListener('mouseenter', () => {
-            card1.style.zIndex = 10;
-            card1.style.transform = 'rotate(-5deg) scale(1.05)';
-            card1.style.boxShadow = '0 30px 60px rgba(0,0,0,0.6)';
-            card2.style.zIndex = 1;
-        });
-        card1.addEventListener('mouseleave', () => {
-            card1.style.zIndex = 2;
-            card1.style.transform = 'rotate(-3deg)';
-            card1.style.boxShadow = '';
-        });
-        card2.addEventListener('mouseenter', () => {
-            card2.style.zIndex = 10;
-            card2.style.transform = 'rotate(6deg) scale(1.05)';
-            card2.style.boxShadow = '0 30px 60px rgba(0,0,0,0.6)';
-            card1.style.zIndex = 1;
-        });
-        card2.addEventListener('mouseleave', () => {
-            card2.style.zIndex = 1;
-            card2.style.transform = 'rotate(4deg)';
-            card2.style.boxShadow = '';
-            card1.style.zIndex = 2;
-        });
+        // Stacked card hover — bring hovered card to front
+        const c1 = document.getElementById('rcard-1');
+        const c2 = document.getElementById('rcard-2');
+        c1.addEventListener('mouseenter', () => { c1.style.zIndex=10; c1.style.transform='rotate(-5deg) scale(1.04)'; c1.style.boxShadow='0 28px 56px rgba(0,0,0,0.6)'; c2.style.zIndex=1; });
+        c1.addEventListener('mouseleave', () => { c1.style.zIndex=2; c1.style.transform='rotate(-3deg)'; c1.style.boxShadow=''; });
+        c2.addEventListener('mouseenter', () => { c2.style.zIndex=10; c2.style.transform='rotate(6deg) scale(1.04)'; c2.style.boxShadow='0 28px 56px rgba(0,0,0,0.6)'; c1.style.zIndex=1; });
+        c2.addEventListener('mouseleave', () => { c2.style.zIndex=1; c2.style.transform='rotate(4deg)'; c2.style.boxShadow=''; c1.style.zIndex=2; });
     </script>
 </body>
 </html>
