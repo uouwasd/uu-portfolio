@@ -401,18 +401,31 @@
                 <h2 class="text-3xl md:text-4xl font-bold">MBTI 板报</h2>
             </div>
 
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-5">
-                <div class="poster-card" data-aos="fade-up" data-aos-duration="700">
-                    <img src="assets/141772924712_.pic_hd.jpg" alt="MBTI 板报">
-                </div>
-                <div class="poster-card" data-aos="fade-up" data-aos-duration="700" data-aos-delay="80">
-                    <img src="assets/151772924713_.pic_hd.jpg" alt="MBTI 板报">
-                </div>
-                <div class="poster-card" data-aos="fade-up" data-aos-duration="700" data-aos-delay="160">
-                    <img src="assets/161772924715_.pic_hd.jpg" alt="MBTI 板报">
-                </div>
-                <div class="poster-card" data-aos="fade-up" data-aos-duration="700" data-aos-delay="240">
-                    <img src="assets/171772924716_.pic_hd.jpg" alt="MBTI 板报">
+            <!-- Carousel wrapper with fade masks on both sides -->
+            <div class="relative" data-aos="fade-up" data-aos-duration="700">
+                <!-- Left fade -->
+                <div class="pointer-events-none absolute left-0 top-0 h-full w-28 z-10"
+                     style="background: linear-gradient(to right, #0a160d 0%, transparent 100%)"></div>
+                <!-- Right fade -->
+                <div class="pointer-events-none absolute right-0 top-0 h-full w-28 z-10"
+                     style="background: linear-gradient(to left, #0a160d 0%, transparent 100%)"></div>
+
+                <!-- Scrollable track -->
+                <div id="poster-track"
+                     class="flex gap-5 overflow-x-auto pb-4 cursor-grab active:cursor-grabbing"
+                     style="scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; scrollbar-width: none;">
+                    <div class="poster-card flex-shrink-0 w-52 transition-opacity duration-300" style="scroll-snap-align: center;">
+                        <img src="assets/141772924712_.pic_hd.jpg" alt="MBTI 板报">
+                    </div>
+                    <div class="poster-card flex-shrink-0 w-52 transition-opacity duration-300" style="scroll-snap-align: center;">
+                        <img src="assets/151772924713_.pic_hd.jpg" alt="MBTI 板报">
+                    </div>
+                    <div class="poster-card flex-shrink-0 w-52 transition-opacity duration-300" style="scroll-snap-align: center;">
+                        <img src="assets/161772924715_.pic_hd.jpg" alt="MBTI 板报">
+                    </div>
+                    <div class="poster-card flex-shrink-0 w-52 transition-opacity duration-300" style="scroll-snap-align: center;">
+                        <img src="assets/171772924716_.pic_hd.jpg" alt="MBTI 板报">
+                    </div>
                 </div>
             </div>
         </div>
@@ -558,6 +571,44 @@
                 }
             }
         }, { passive: true });
+
+        // ── Poster carousel: opacity by distance from center + drag ──
+        const track = document.getElementById('poster-track');
+        if (track) {
+            // Hide scrollbar visually
+            track.style.msOverflowStyle = 'none';
+
+            function updateOpacity() {
+                const cards = track.querySelectorAll('.poster-card');
+                const center = track.scrollLeft + track.clientWidth / 2;
+                cards.forEach(card => {
+                    const cardCenter = card.offsetLeft + card.offsetWidth / 2;
+                    const dist = Math.abs(center - cardCenter);
+                    const maxDist = track.clientWidth * 0.55;
+                    const opacity = Math.max(0.25, 1 - (dist / maxDist) * 0.75);
+                    card.style.opacity = opacity;
+                    const scale = Math.max(0.92, 1 - (dist / maxDist) * 0.08);
+                    card.style.transform = `scale(${scale})`;
+                });
+            }
+            track.addEventListener('scroll', updateOpacity, { passive: true });
+            setTimeout(updateOpacity, 200);
+
+            // Mouse drag to scroll
+            let isDown = false, startX, scrollStart;
+            track.addEventListener('mousedown', e => {
+                isDown = true;
+                startX = e.pageX - track.offsetLeft;
+                scrollStart = track.scrollLeft;
+            });
+            window.addEventListener('mouseup',   () => { isDown = false; });
+            window.addEventListener('mousemove', e => {
+                if (!isDown) return;
+                e.preventDefault();
+                const x = e.pageX - track.offsetLeft;
+                track.scrollLeft = scrollStart - (x - startX);
+            });
+        }
 
         // Stacked card hover — bring hovered card to front
         const c1 = document.getElementById('rcard-1');
