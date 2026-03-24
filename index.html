@@ -198,13 +198,10 @@
             opacity: 0;
             animation: leafFall linear forwards;
         }
-        .leaf img {
+        .leaf canvas {
             width: 100%;
             height: 100%;
-            object-fit: contain;
-            /* Screen blend: makes black bg transparent, keeps green leaf */
-            mix-blend-mode: screen;
-            filter: brightness(1.15) saturate(1.1);
+            display: block;
         }
         @keyframes leafFall {
             0%   { opacity: 0;   transform: translateY(0)      rotate(0deg)          translateX(0px); }
@@ -481,7 +478,7 @@
                 </a>
             </div>
 
-            <p class="text-5xl md:text-7xl font-bold opacity-[0.18] mb-10 select-none"
+            <p class="text-3xl md:text-4xl font-bold opacity-[0.12] mb-10 select-none tracking-widest"
                data-aos="fade-up" data-aos-delay="200">恁慢走勒</p>
 
             <p class="text-[0.6rem] opacity-20 uppercase tracking-[0.5em]">
@@ -508,8 +505,9 @@
             const leaf = document.createElement('div');
             leaf.className = 'leaf';
 
-            // Random size: small (18–32px)
-            const size = 18 + Math.random() * 14;
+            // Size variation: mix of small and tiny (12–38px), weighted small
+            const sizes = [12, 14, 16, 18, 20, 24, 28, 32, 38];
+            const size = sizes[Math.floor(Math.random() * sizes.length)];
             leaf.style.width  = size + 'px';
             leaf.style.height = size + 'px';
 
@@ -526,10 +524,30 @@
             const dur = 5 + Math.random() * 4;
             leaf.style.animationDuration = dur + 's';
 
-            const img = document.createElement('img');
-            img.src = 'assets/leaf-fall.png';
-            img.alt = '';
-            leaf.appendChild(img);
+            // Use canvas to cut out black background
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            const srcImg = new Image();
+            srcImg.src = 'assets/leaf-fall.png';
+            srcImg.onload = () => {
+                canvas.width  = srcImg.naturalWidth;
+                canvas.height = srcImg.naturalHeight;
+                ctx.drawImage(srcImg, 0, 0);
+                const data = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const px = data.data;
+                for (let i = 0; i < px.length; i += 4) {
+                    const r = px[i], g = px[i+1], b = px[i+2];
+                    const brightness = (r + g + b) / 3;
+                    // Make dark/black pixels transparent
+                    if (brightness < 40) {
+                        px[i+3] = 0;
+                    } else if (brightness < 80) {
+                        px[i+3] = Math.round((brightness - 40) / 40 * 255);
+                    }
+                }
+                ctx.putImageData(data, 0, 0);
+            };
+            leaf.appendChild(canvas);
             document.body.appendChild(leaf);
 
             leaf.addEventListener('animationend', () => {
