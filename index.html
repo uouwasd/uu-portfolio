@@ -29,16 +29,14 @@
             background: #0a160d;
         }
 
-        /* ── Fixed parallax background ── */
+        /* ── Fixed background — no parallax, no scaling ── */
         #parallax-bg {
             position: fixed;
             inset: 0;
             background-image: url('assets/leaf-bg.png');
             background-size: cover;
-            background-position: center top;
+            background-position: center center;
             z-index: -3;
-            transform: scale(1.1);
-            will-change: transform;
         }
         /* Single, uniform dark overlay — no blur, preserves leaf detail */
         #parallax-bg::after {
@@ -199,9 +197,9 @@
             animation: leafFall linear forwards;
         }
         .leaf canvas {
-            width: 100%;
-            height: 100%;
             display: block;
+            max-width: 100%;
+            height: auto;
         }
         @keyframes leafFall {
             0%   { opacity: 0;   transform: translateY(0)      rotate(0deg)          translateX(0px); }
@@ -491,12 +489,10 @@
         lucide.createIcons();
         AOS.init({ once: false, mirror: true, duration: 800, easing: 'ease-out-cubic', offset: 60 });
 
-        const bg = document.getElementById('parallax-bg');
-
         // ── Falling leaves on scroll ──
         let lastScroll = 0;
         let leafCount = 0;
-        const MAX_LEAVES = 6; // max on screen at once
+        const MAX_LEAVES = 6;
 
         function spawnLeaf() {
             if (leafCount >= MAX_LEAVES) return;
@@ -505,11 +501,11 @@
             const leaf = document.createElement('div');
             leaf.className = 'leaf';
 
-            // Size variation: mix of small and tiny (12–38px), weighted small
-            const sizes = [12, 14, 16, 18, 20, 24, 28, 32, 38];
+            // Width only — height auto so leaf keeps its tall portrait ratio
+            const sizes = [12, 14, 16, 18, 20, 22, 26, 30];
             const size = sizes[Math.floor(Math.random() * sizes.length)];
             leaf.style.width  = size + 'px';
-            leaf.style.height = size + 'px';
+            leaf.style.height = 'auto';
 
             // Random horizontal start
             leaf.style.left = (5 + Math.random() * 88) + 'vw';
@@ -560,10 +556,6 @@
         let scrollTimer = null;
         window.addEventListener('scroll', () => {
             const y = window.scrollY;
-            // Parallax bg
-            bg.style.transform = `scale(1.1) translateY(${y * 0.22}px)`;
-
-            // Spawn leaf only when actually scrolling down
             if (y > lastScroll + 80) {
                 lastScroll = y;
                 if (!scrollTimer) {
